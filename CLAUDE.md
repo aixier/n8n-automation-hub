@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ THIS IS THE SINGLE SOURCE OF TRUTH
+
+**All Claude Code guidance is centralized here** - submodules reference this file.
+
+- **Working in main project**: You're reading the right file
+- **Working in n8n-workflow-agent**: This guidance applies (see sections below)
+- **Working in n8n-skills**: This guidance applies (see sections below)
+
+**Submodules have redirect CLAUDE.md files that point here.**
+
 ## 🔥 Claude Code Skills Available
 
 This repository includes **7 integrated Claude Code skills** for n8n automation. Claude will automatically invoke these skills when relevant to your task.
@@ -53,6 +63,27 @@ This is a **monorepo** containing two complementary n8n automation projects:
 
 ### n8n-workflow-agent (Python Agent)
 
+**Location**: `n8n-workflow-agent/` (submodule)
+
+**Purpose**: Programmatic workflow creation, testing, and management via n8n API
+
+#### Critical Workflow Pattern
+
+**IMPORTANT**: When users request n8n workflow tasks, follow this sequence:
+
+1. **Identify Task Type**: CREATE | MODIFY | TEST | OPTIMIZE
+2. **Execute Analysis Phase** (mandatory):
+   ```bash
+   cd n8n-workflow-agent
+   # Read each analysis module in order - DO NOT skip
+   Read docs/ANALYSIS_REQUIREMENTS.md  # Parse user requirements
+   Read docs/ANALYSIS_NODES.md         # Design node configuration
+   Read docs/ANALYSIS_DATAFLOW.md      # Plan data transformations
+   Read docs/ANALYSIS_TESTING.md       # Generate test scenarios
+   ```
+3. **Generate Configuration**: Create `workflow_config.json` based on analysis
+4. **Execute Implementation**: Deploy and test
+
 #### Environment Setup
 ```bash
 cd n8n-workflow-agent
@@ -80,8 +111,11 @@ python tools/n8n_workflow_manager.py create workflow_config.json --activate
 # Update existing workflow
 python tools/n8n_workflow_manager.py update WORKFLOW_ID changes.json
 
-# Backup workflow
+# Backup workflow (ALWAYS backup before modifying!)
 python tools/n8n_workflow_manager.py backup WORKFLOW_ID
+
+# Deploy/activate workflow
+python tools/n8n_workflow_manager.py deploy WORKFLOW_ID
 
 # Import workflow
 python tools/n8n_workflow_manager.py import workflow.json
@@ -98,12 +132,16 @@ builder.chain_nodes([webhook['id'], code['id']])
 workflow = builder.build_workflow('My Workflow')
 ```
 
-#### Workflow Analysis
+#### Workflow Analysis & Optimization
 ```bash
-# Analyze workflow for issues and optimization
+# Analyze workflow for issues
 python tools/workflow_analyzer.py workflow.json --output report.md
 
-# Includes: complexity, performance, security, optimization suggestions
+# Analysis includes:
+# - Complexity metrics
+# - Performance bottlenecks
+# - Security vulnerabilities
+# - Optimization suggestions
 ```
 
 #### Testing
@@ -117,6 +155,73 @@ python tools/test_runner.py test_scenarios.json --parallel
 # HTML report
 python tools/test_runner.py test_scenarios.json --format html --output report.html
 ```
+
+#### Python Tools Architecture
+
+**Analysis Modules** (`docs/ANALYSIS_*.md`):
+- Mandatory sequential processing for workflow creation
+- Converts natural language → specifications → nodes → data flow → tests
+
+**Core Python Tools** (`tools/`):
+- `n8n_workflow_manager.py` (596 lines) - Workflow lifecycle via n8n API
+- `node_builder.py` (569 lines) - Programmatic node construction
+- `workflow_analyzer.py` (667 lines) - Performance and security analysis
+- `test_runner.py` (552 lines) - Automated testing framework
+
+**Configuration** (`config/`):
+- `.env.example` - Environment variable template (N8N_BASE_URL, N8N_API_KEY)
+- `agent_config.yaml` - Agent behavior configuration
+
+**Templates** (`templates/`):
+- `workflow_config.json` - Base workflow structure
+- `node_mappings.json` - Node type definitions
+- `test_scenarios.json` - Test case templates
+
+#### Workflow Creation Pattern
+
+```python
+# 1. Analyze requirements
+requirements = analyze_user_request(user_input)
+
+# 2. Design nodes
+nodes = [
+    {"type": "webhook", "path": "/trigger"},
+    {"type": "code", "script": process_logic},
+    {"type": "respondToWebhook", "response": output}
+]
+
+# 3. Build connections
+connections = chain_nodes(nodes)
+
+# 4. Generate workflow config
+config = {
+    "name": workflow_name,
+    "nodes": nodes,
+    "connections": connections,
+    "settings": workflow_settings
+}
+
+# 5. Deploy and test
+manager.create_workflow(config)
+runner.run_tests(test_scenarios)
+```
+
+#### Mandatory Requirements
+
+1. **Analysis Phase**: Never skip the analysis module reading sequence
+2. **Manual Configuration**: Always create config files manually using Write tool
+3. **Testing Required**: Every workflow must have test scenarios before deployment
+4. **Always Backup**: Backup before modifying existing workflows
+5. **Error Handling**: All workflows must include error handler nodes
+6. **Knowledge Management**: Update `docs/SUCCESS_EXPERIENCES.md` and `docs/ERROR_LESSONS.md` after tasks
+
+#### Security Requirements
+
+- Never hardcode credentials - use environment variables
+- Always validate input with schema validation nodes
+- Implement rate limiting for webhook endpoints
+- Use authentication for external API access
+- Run security analysis with `workflow_analyzer.py`
 
 ### n8n-skills (Skills Library)
 

@@ -1,0 +1,6 @@
+[submodule "n8n-skills"]
+	path = n8n-skills
+	url = https://github.com/aixier/n8n-skills.git
+[submodule "n8n-workflow-agent"]
+	path = n8n-workflow-agent
+	url = https://github.com/aixier/n8n-workflow-agent.git
